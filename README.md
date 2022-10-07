@@ -22,6 +22,8 @@ Swiftbar: https://github.com/swiftbar/SwiftBar
 
 
 # Raspberry Pi Setup
+You are sudo installing a lot because the matrix libraries require sudo access for performance reasons.
+
 ```
 brew install fastapi OR pip install fastapi
 sudo pip install "uvicorn[standard]"
@@ -34,8 +36,13 @@ sudo curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker
 sudo chmod +x /usr/local/bin/docker-compose
 echo "alias redis-cli='docker exec -it rgb-matrix-api-cache-1 redis-cli'" >> ~/.bashrc
 ```
+## SSH access
+Don't forget to add your ssh public key to: `~/.ssh/authorized_keys`
+
 ## Setting up the rgb libraries
+This needs to be done on the Raspberry Pi.
 ```
+git clone git@github.com:hzeller/rpi-rgb-led-matrix.git
 cd ~/git/rpi-rgb-led-matrix/bindings/python
 make build-python PYTHON=$(command -v python3)
 sudo make install-python PYTHON=$(command -v python3)
@@ -46,7 +53,7 @@ We need to run the api, redis, and the matrix-runner.
 todo: move api and matrix-runner into docker
 
 # Development
-
+The dev workflow looks like this...
 - Run deploy.sh
   - this copies all files over rsync
   - restarts the service
@@ -54,19 +61,4 @@ todo: move api and matrix-runner into docker
   - this copies your swiftbar plugin to the right place, and it should automatically start working
 - Run test.sh
   - this makes curl calls to test the functionality of your changes
-
-## Available api calls
-### get
-- zoom state (muted, unmuted, inactive)
-
-### post
-- change zoom state to
-
-## using the api
-curl get api/zoom/state
-curl post api/zoom/statechange
-
-## testing the api
-- change zoom state to muted
-- change zoom state to unmuted
-- get zoom state
+- Look at the logging output to see what's happening

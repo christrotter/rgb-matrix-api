@@ -18,9 +18,11 @@ echo "Can we publish to redis?: $REDIS_PUB_RESPONSE"
 #REDIS_SUB_RESPONSE=`$REDIS_CONNECT subscribe ch-zoom`
 #echo "Can we subscribe to redis?: $REDIS_SUB_RESPONSE"
 
+echo "NOTE NOTE IF SWIFTBAR IS RUNNING THE SLEEP DOESN'T KEEP THE MATRIX LIT!!!!"
 
 PUT_ZOOM_MUTED=`curl -s -X PUT $API_URL/zoom/muted`
 echo "Putting muted zoom state: $PUT_ZOOM_MUTED"
+sleep 2
 #echo "Did a message show up in redis?" # this is hard to do in a one-liner, needs a client really/ thus the limitations of not-a-framework
 
 #REDIS_CHECK_PUT_ZOOM_MUTED=`$REDIS_CONNECT get zoom_state`
@@ -28,10 +30,10 @@ echo "Putting muted zoom state: $PUT_ZOOM_MUTED"
 
 PUT_ZOOM_UNMUTED=`curl -s -X PUT $API_URL/zoom/unmuted`
 echo "Putting unmuted zoom state: $PUT_ZOOM_UNMUTED"
-
+sleep 2
 PUT_ZOOM_INACTIVE=`curl -s -X PUT $API_URL/zoom/inactive`
 echo "Putting inactive zoom state: $PUT_ZOOM_INACTIVE"
-
+sleep 2
 
 
 # echo "Puting a new zoom state: unmuted"
