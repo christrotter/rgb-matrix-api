@@ -5,9 +5,11 @@ https://www.youtube.com/watch?v=dxMZ7T-pGdI
 
 ![](images/rgb-matrix-action.png)
 
-* When Zoom is not running/not in a meeting, a white fill is applied.
-* When you are in a meeting and muted, a red fill is applied.
-* When you are in a meeting and unmuted, a green fill is applied.
+* When Zoom is not running/not in a meeting, you get a simple date/time display.
+* When you are in a meeting and muted, a red 'muted' image is displayed.
+* When you are in a meeting and unmuted, a green 'on the air' image is displayed.
+
+![](images/rgb-matrix-new_icons.png)
 
 Future ideas are...
 - Text endpoints
@@ -23,6 +25,11 @@ FastAPI is kinda nifty, so you can get api docs at http://localhost:8000/docs , 
 
 # Setup
 Swiftbar: https://github.com/swiftbar/SwiftBar
+I found the script code guts here: https://dustin.lol/post/2021/better-zoom-mute/
+
+## SwiftBar timing
+Note that the filename is used by SwiftBar for timing: `zoom-mute.500ms.sh`
+So if you want to adjust timing, you change the filename.
 
 # Panel stand
 Quick DIY job on my part...
