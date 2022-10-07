@@ -6,6 +6,8 @@ from redis import asyncio as aioredis
 
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from rgbmatrix import graphics
+from PIL import Image
+from PIL import ImageDraw
 
 import MatrixSettings
 config = MatrixSettings.Config()
@@ -28,11 +30,38 @@ async def paint_matrix():
         try:
             zoom_state = await get_zoom_state()
             if zoom_state == "muted":
-                matrix.Fill(255,0,0)
+                #matrix.Fill(255,0,0)
+                image = Image.open("icons/muted.png")
+                resized_image = image.resize((96,32))
+                matrix.SetImage(resized_image.convert('RGB'))
             if zoom_state == "unmuted":
-                matrix.Fill(0,255,0)
+                #matrix.Fill(0,255,0)
+                image = Image.open("icons/unmuted.png")
+                resized_image = image.resize((96,32))
+                matrix.SetImage(resized_image.convert('RGB'))
             if zoom_state == "inactive":
-                matrix.Fill(100,100,100)
+                # working fill
+                #matrix.Fill(100,100,100)
+
+                # working image display, sort of...it's 11 pixels short...the resize function fixed that.  weird.
+                # i'm exporting them at the right size...?
+                image = Image.open("icons/inactive.png")
+                resized_image = image.resize((96,32))
+                matrix.SetImage(resized_image.convert('RGB'))
+
+                # draw primitive...not working
+                #image = Image.new("RGB", (96, 32))
+                #draw = ImageDraw.Draw(image,0,0)
+                #matrix.Clear()
+                #matrix.draw.rectangle((0, 0, 95, 31), fill=(100, 100, 100), outline=(0, 0, 255))
+                #matrix.SetImage(image)
+
+                # working draw text
+                #font = graphics.Font()
+                #font.LoadFont("fonts/10x20.bdf")
+                #colour = graphics.Color(100, 100, 100)
+                #graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
+
             interrupted = True
         except:
             pass
@@ -64,31 +93,32 @@ async def pubsub():
     async def reader(channel: aioredis.client.PubSub):
         while True:
             try:
-                async with async_timeout.timeout(1):
+                async with async_timeout.timeout(5):
                     message = await channel.get_message(ignore_subscribe_messages=True)
                     if message is not None:
+                        # too many print statements here causes the code to blow up
                         print(f"(Reader) Message Received: {message}")
                         if message["data"] == STOPWORD:
-                            print("(Reader) STOP")
+                            #print("(Reader) STOP")
                             break
                         if message["data"] == "muted":
-                            print("(Reader) We got a muted message.")
+                            #print("(Reader) We got a muted message.")
                             async with redis.client() as conn:
                                 await conn.set("zoom_state", "muted")
-                                val = await conn.get("zoom_state")
-                            print("(Reader) zoom_state: " + val)
+                                #val = await conn.get("zoom_state")
+                            #print("(Reader) zoom_state: " + val)
                         if message["data"] == "unmuted":
-                            print("(Reader) We got an unmuted message.")
+                            #print("(Reader) We got an unmuted message.")
                             async with redis.client() as conn:
                                 await conn.set("zoom_state", "unmuted")
-                                val = await conn.get("zoom_state")
-                            print("(Reader) zoom_state: " + val)
+                                #val = await conn.get("zoom_state")
+                            #print("(Reader) zoom_state: " + val)
                         if message["data"] == "inactive":
-                            print("(Reader) We got an inactive message.")
+                            #print("(Reader) We got an inactive message.")
                             async with redis.client() as conn:
                                 await conn.set("zoom_state", "inactive")
-                                val = await conn.get("zoom_state")
-                            print("(Reader) zoom_state: " + val)
+                                #val = await conn.get("zoom_state")
+                            #print("(Reader) zoom_state: " + val)
                     await asyncio.sleep(0.01)
             except asyncio.TimeoutError:
                 pass
