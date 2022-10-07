@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import asyncio
+import time
+import os
 import async_timeout
 
 from redis import asyncio as aioredis
@@ -8,18 +10,38 @@ from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from rgbmatrix import graphics
 from PIL import Image
 from PIL import ImageDraw
+from PIL import ImageFont
 
 import MatrixSettings
 config = MatrixSettings.Config()
 matrix = RGBMatrix(options=MatrixSettings.options)
+large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/10x20.pil")
+small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
 #buffer = matrix.CreateFrameCanvas() # note for later...cuz i suspect we'll have to move to images vs. 'fill' or 'text'
 
 STOPWORD = "STOP" # not sure this is ever really functionally used...is it some kinda redis thing?
 # not sure how to declare this any less jankily
 running = True
 zoom_state = ''
+white = 100,100,100
 
 loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
+
+async def drawTime():
+    colour = white
+    time_font = small_font
+    time_image = Image.new("RGB", (96, 32), 0)
+    draw = ImageDraw.Draw(time_image)
+    date_str = time.strftime("%d %b")
+    date_xoffset, date_height = time_font.getsize(date_str)
+    date_xoffset = 2 #int((96 - date_xoffset) /2)
+    time_str = time.strftime("%I:%M%p").lower()
+    time_xoffset, time_height = time_font.getsize(time_str)
+    time_xoffset = 35 #int((96 - time_xoffset) /2)
+    upper_offset = int((32 - (date_height + time_height)) / 2)
+    draw.text((date_xoffset, upper_offset), date_str, colour, font=time_font)
+    draw.text((time_xoffset, date_height + upper_offset), time_str, colour, font=time_font)
+    matrix.SetImage(time_image, 1, 0)
 
 """
     paint_matrix: This async function acts on other state pulled from redis keys and modifies the rgb matrix accordingly.
@@ -28,42 +50,48 @@ async def paint_matrix():
     global zoom_state, interrupted
     while running:
         try:
-            zoom_state = await get_zoom_state()
-            if zoom_state == "muted":
-                #matrix.Fill(255,0,0)
-                image = Image.open("icons/muted.png")
-                resized_image = image.resize((96,32))
-                matrix.SetImage(resized_image.convert('RGB'))
-            if zoom_state == "unmuted":
-                #matrix.Fill(0,255,0)
-                image = Image.open("icons/unmuted.png")
-                resized_image = image.resize((96,32))
-                matrix.SetImage(resized_image.convert('RGB'))
-            if zoom_state == "inactive":
-                # working fill
-                #matrix.Fill(100,100,100)
+            async with async_timeout.timeout(5):
+                last_state = zoom_state
+                zoom_state = await get_zoom_state()
+                if last_state != zoom_state:
+                    # state has changed, let's clear the matrix to remove any ghosting; this helped!
+                    matrix.Clear()
+                if zoom_state == "muted":
+                    #matrix.Fill(255,0,0)
+                    image = Image.open("icons/muted.png")
+                    resized_image = image.resize((96,32))
+                    matrix.SetImage(resized_image.convert('RGB'))
+                if zoom_state == "unmuted":
+                    #matrix.Fill(0,255,0)
+                    image = Image.open("icons/unmuted.png")
+                    resized_image = image.resize((96,32))
+                    matrix.SetImage(resized_image.convert('RGB'))
+                if zoom_state == "inactive":
+                    # working fill
+                    #matrix.Fill(100,100,100)
 
-                # working image display, sort of...it's 11 pixels short...the resize function fixed that.  weird.
-                # i'm exporting them at the right size...?
-                image = Image.open("icons/inactive.png")
-                resized_image = image.resize((96,32))
-                matrix.SetImage(resized_image.convert('RGB'))
+                    # working image display, sort of...it's 11 pixels short...the resize function fixed that.  weird.
+                    # i'm exporting them at the right size...?
+                    #image = Image.open("icons/inactive.png")
+                    #resized_image = image.resize((96,32))
+                    #matrix.SetImage(resized_image.convert('RGB'))
 
-                # draw primitive...not working
-                #image = Image.new("RGB", (96, 32))
-                #draw = ImageDraw.Draw(image,0,0)
-                #matrix.Clear()
-                #matrix.draw.rectangle((0, 0, 95, 31), fill=(100, 100, 100), outline=(0, 0, 255))
-                #matrix.SetImage(image)
+                    # draw primitive...not working
+                    #image = Image.new("RGB", (96, 32))
+                    #draw = ImageDraw.Draw(image,0,0)
+                    #matrix.Clear()
+                    #matrix.draw.rectangle((0, 0, 95, 31), fill=(100, 100, 100), outline=(0, 0, 255))
+                    #matrix.SetImage(image)
 
-                # working draw text
-                #font = graphics.Font()
-                #font.LoadFont("fonts/10x20.bdf")
-                #colour = graphics.Color(100, 100, 100)
-                #graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
+                    # working draw text
+                    #font = graphics.Font()
+                    #font.LoadFont("fonts/10x20.bdf")
+                    #colour = graphics.Color(100, 100, 100)
+                    #graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
 
-            interrupted = True
-        except:
+                    await drawTime()
+                interrupted = True
+        except asyncio.TimeoutError:
             pass
         await asyncio.sleep(.1)
 
