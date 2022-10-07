@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  cache:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - cache:/data
+  api:
+    image: rgb-matrix-api:latest
+    restart: always
+    ports:
+     - '8000:8000'
+    command: ./run-api.sh
+  client:
+    image: rgb-matrix-client:latest
+    restart: always
+    command: ./run-client.sh
+volumes:
+  cache:
+    driver: local
