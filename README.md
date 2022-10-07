@@ -20,6 +20,10 @@ FastAPI is kinda nifty, so you can get api docs at http://localhost:8000/docs , 
 # Setup
 Swiftbar: https://github.com/swiftbar/SwiftBar
 
+# Panel stand
+Quick DIY job on my part...
+![](images/rgb-matrix-fusion.png)
+![](images/rgb-matrix-3dprint.png)
 
 # Raspberry Pi Setup
 You are sudo installing a lot because the matrix libraries require sudo access for performance reasons.
