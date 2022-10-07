@@ -1,6 +1,10 @@
 # rgb-matrix-api
 Overly complicated way of using Python FastAPI/async and Redis to create an API for things like zoom mute status indication.
 
+https://www.youtube.com/watch?v=dxMZ7T-pGdI
+
+![](images/rgb-matrix-action.png)
+
 * When Zoom is not running/not in a meeting, a white fill is applied.
 * When you are in a meeting and muted, a red fill is applied.
 * When you are in a meeting and unmuted, a green fill is applied.
