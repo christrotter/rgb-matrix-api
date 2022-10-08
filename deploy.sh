@@ -10,5 +10,8 @@ rsync -az --force --delete --progress \
 echo "Triggering the build on the remote Raspberry Pi..."
 ssh pi@$SERVER 'bash -s' < ./build-n-run.sh
 
+echo "Sleeping to let the client app spool up..."
+sleep 5
+
 echo "Running the tests..."
 source ./test.sh
