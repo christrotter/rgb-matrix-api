@@ -56,38 +56,14 @@ async def paint_matrix():
                     # state has changed, let's clear the matrix to remove any ghosting; this helped!
                     matrix.Clear()
                 if zoom_state == "muted":
-                    #matrix.Fill(255,0,0)
                     image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/muted.png")
                     resized_image = image.resize((96,32))
                     matrix.SetImage(resized_image.convert('RGB'))
                 if zoom_state == "unmuted":
-                    #matrix.Fill(0,255,0)
                     image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/unmuted.png")
                     resized_image = image.resize((96,32))
                     matrix.SetImage(resized_image.convert('RGB'))
                 if zoom_state == "inactive":
-                    # working fill
-                    #matrix.Fill(100,100,100)
-
-                    # working image display, sort of...it's 11 pixels short...the resize function fixed that.  weird.
-                    # i'm exporting them at the right size...?
-                    #image = Image.open("icons/inactive.png")
-                    #resized_image = image.resize((96,32))
-                    #matrix.SetImage(resized_image.convert('RGB'))
-
-                    # draw primitive...not working
-                    #image = Image.new("RGB", (96, 32))
-                    #draw = ImageDraw.Draw(image,0,0)
-                    #matrix.Clear()
-                    #matrix.draw.rectangle((0, 0, 95, 31), fill=(100, 100, 100), outline=(0, 0, 255))
-                    #matrix.SetImage(image)
-
-                    # working draw text
-                    #font = graphics.Font()
-                    #font.LoadFont("fonts/10x20.bdf")
-                    #colour = graphics.Color(100, 100, 100)
-                    #graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
-
                     await drawTime()
                 interrupted = True
         except asyncio.TimeoutError:
