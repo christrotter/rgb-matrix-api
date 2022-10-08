@@ -6,4 +6,9 @@ rsync -az --force --delete --progress \
     -e "ssh -p22" ./ \
     pi@$SERVER:/home/pi/git/rgb-matrix-api
 
-# TODO: change this to a docker deploy...
+
+echo "Triggering the build on the remote Raspberry Pi..."
+ssh pi@$SERVER 'bash -s' < ./build-n-run.sh
+
+echo "Running the tests..."
+source ./test.sh

@@ -1,5 +1,6 @@
 #!/bin/bash
 echo "Building docker images..."
+cd ~/git/rgb-matrix-api/
 
 cd app-api
 echo "Building app-api image..."

@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   redis:
+    container_name: redis
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -9,18 +10,24 @@ services:
     volumes:
       - cache:/data
   api:
+    container_name: api
     image: rgb-matrix-api:latest
     restart: always
     environment:
       - REDIS_HOST=redis
     ports:
      - '8000:8000'
+    depends_on:
+      - redis
   client:
+    container_name: client
     image: rgb-matrix-client:latest
     restart: always
     environment:
       - REDIS_HOST=redis
     privileged: true
+    depends_on:
+      - redis
 volumes:
   cache:
     driver: local
