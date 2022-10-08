@@ -1,19 +1,27 @@
 # rgb-matrix-api
 Overly complicated way of using Python FastAPI/async and Redis to create an API for things like zoom mute status indication.
 
-![](images/rgb-matrix-new_icons.png)
-
 * When Zoom is not running/not in a meeting, you get a simple date/time display.
-* When you are in a meeting and muted, a red 'muted' image is displayed.
 * When you are in a meeting and unmuted, a green 'on the air' image is displayed.
+* When you are in a meeting and muted, a red 'muted' image is displayed.
 
 # Early demo
+![](images/rgb-matrix-new_icons.png)
+
 https://www.youtube.com/watch?v=dxMZ7T-pGdI
 
 # Future ideas
+- [x] Dockerize the solution for sanity
 - [ ] Text endpoints
 - [x] Pre-loaded image/gif endpoints
 - [ ] Other application endpoints
+
+# Why?
+I was constantly struggle-bussing to manage my Zoom mute state, and loved the idea of a coloured indicator.  My keyboard could handle the RGB and code changes, but there was no practical way to communicate over USB HID from my Mac.
+
+I saw a bunch of ways of doing it, but the solid 'mute button hardware' seemed to have iffy software support.
+
+I really wanted to have a monitor surround that lit up, but...I had the RGB panels and Raspberry Pi sitting around from an old work hackday project (_that I saved from the garbage, but had no hand in creating_).  So I knew it was possible, and a lot less work than going whole hog on a 3D printing project.  That is something I still want to do in future...
 
 # Docker build, deploy, test
 There is a script to build and run via Dockerfiles and `docker-compose`.
@@ -43,8 +51,19 @@ The dev workflow looks like this...
 
 I used print statements to help with debugging, but deleted/disabled them to help CPU usage.
 
+## Icon dev
+There is an included FireAlpaca project file in the icons folder.  Just a bunch of layers on a 96x32 file size.
+
+- Red 'unmuted'
+- Green, 'on the air'
+
+I think images/gifs are going to be the most effective way of achieving the UI I want...but might be tricky with a dynamic UI.
+That being said, very similar to QMK's Quantum Painter (https://docs.qmk.fm/#/quantum_painter) and people have done some super cool stuff with that.
+
 ## Matrix dev
 This part is trickier...I really should have built a simple matrix test app that did nothing but allow me to mess around.
+
+This guy is a complete champ, all heavy lifting done here: https://github.com/hzeller/rpi-rgb-led-matrix
 
 Anyways, here are some working examples of matrix code...
 ``` python
@@ -64,14 +83,19 @@ colour = graphics.Color(100, 100, 100)
 graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
 ```
 
-# Architecture
+# App architecture
+- Why Python/FastAPI?  We use it at work, and I was trying to two-birds the problem.
+- Why Redis?  I've used it before, and the original code for these panels used it, so familiarity.
+- Why pubsub AND key-value?  Don't judge.  Learning experience.
+- Why async????  I didn't know of any better way to handle multi-threading.  The RGB panels have no onboard memory/microcontroller, so they need a constant 'write LED to' stream.  The python API and pubsub/kv stuff needs to run on its own threads.  Here we are.
+
 ![](images/rgb-matrix-diagram.png)
 
-# API documentation
+## API documentation
 FastAPI is kinda nifty, so you can get api docs at http://localhost:8000/docs , like this:
 ![](images/rgb-matrix-fastapi.png)
 
-# Setup
+# Mac-side setup
 Swiftbar: https://github.com/swiftbar/SwiftBar
 
 I found the script code guts here: https://dustin.lol/post/2021/better-zoom-mute/
@@ -80,7 +104,16 @@ I found the script code guts here: https://dustin.lol/post/2021/better-zoom-mute
 Note that the filename is used by SwiftBar for timing: `zoom-mute.500ms.sh`
 So if you want to adjust timing, you change the filename.
 
-# Panel stand
+# Hardware
+What I used...
+- Raspberry Pi 2 (what I had on hand)
+- Adafruit RGB Matrix hat
+- 3x 32x32 RGB panels (what I had on hand)
+- 3D printed stand/Raspberry Pi mount
+
+This was a project of 'finish what you started' and 'use what you have', so here we are.
+
+## Panel stand
 Quick DIY job on my part...
 ![](images/rgb-matrix-fusion.png)
 ![](images/rgb-matrix-3dprint.png)
@@ -95,12 +128,13 @@ docker run hello-world
 sudo systemctl enable docker
 sudo curl -SL https://github.com/docker/compose/releases/download/v2.11.2/docker-compose-linux-armv6 -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
+# just for debugging redis calls
 echo "alias redis-cli='docker exec -it rgb-matrix-api-cache-1 redis-cli'" >> ~/.bashrc
 ```
-## SSH access
+## SSH access to Raspberry Pi
 Don't forget to add your ssh public key to: `~/.ssh/authorized_keys`
 
-## Setting up the rgb libraries
+## Setting up the RGB matrix libraries on the Raspberry Pi
 This needs to be done on the Raspberry Pi, I could not get it to run on my Mac - but that could be due to work local dev enviro stuff.
 ```
 git clone git@github.com:hzeller/rpi-rgb-led-matrix.git
