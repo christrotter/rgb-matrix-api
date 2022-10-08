@@ -3,7 +3,6 @@ import asyncio
 import time
 import os
 import async_timeout
-
 from redis import asyncio as aioredis
 
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
@@ -13,7 +12,7 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 import MatrixSettings
-config = MatrixSettings.Config()
+config = MatrixSettings.Config() # redis config
 matrix = RGBMatrix(options=MatrixSettings.options)
 large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/10x20.pil")
 small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
@@ -58,12 +57,12 @@ async def paint_matrix():
                     matrix.Clear()
                 if zoom_state == "muted":
                     #matrix.Fill(255,0,0)
-                    image = Image.open("icons/muted.png")
+                    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/muted.png")
                     resized_image = image.resize((96,32))
                     matrix.SetImage(resized_image.convert('RGB'))
                 if zoom_state == "unmuted":
                     #matrix.Fill(0,255,0)
-                    image = Image.open("icons/unmuted.png")
+                    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/unmuted.png")
                     resized_image = image.resize((96,32))
                     matrix.SetImage(resized_image.convert('RGB'))
                 if zoom_state == "inactive":

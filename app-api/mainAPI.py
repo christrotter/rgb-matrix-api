@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, APIRouter
 from enum import Enum
 from pydantic import BaseModel
@@ -6,8 +7,10 @@ import asyncio
 import async_timeout
 import aioredis
 
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+
 class Config(BaseSettings):
-    redis_url: str = 'redis://localhost:6379'
+    redis_url: str = "redis://{}:{}/1".format(REDIS_HOST, 6379)
     redis_pass: str = 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81'
 
 class ZoomState(str, Enum):

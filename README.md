@@ -16,6 +16,13 @@ Future ideas are...
 - Pre-loaded image/gif endpoints
 - Other application endpoints
 
+# Docker
+There is a script to build and run via Dockerfiles and `docker-compose`.
+```
+./run.sh
+```
+
+
 # Architecture
 ![](images/rgb-matrix-diagram.png)
 

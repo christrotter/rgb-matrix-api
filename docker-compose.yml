@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  cache:
+  redis:
     image: redis:6.2-alpine
     restart: always
     ports:
@@ -11,12 +11,19 @@ services:
   api:
     image: rgb-matrix-api:latest
     restart: always
+    environment:
+      - REDIS_HOST=redis
     ports:
      - '8000:8000'
   client:
     image: rgb-matrix-client:latest
     restart: always
+    environment:
+      - REDIS_HOST=redis
     privileged: true
 volumes:
   cache:
     driver: local
+networks:
+  services:
+    driver: bridge

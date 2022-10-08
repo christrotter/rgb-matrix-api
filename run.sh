@@ -11,3 +11,4 @@ echo "Building app-client image..."
 docker build -t rgb-matrix-client:latest .
 cd ..
 
+sudo docker-compose -f docker-compose.yml up --detach --remove-orphans
