@@ -1,10 +1,13 @@
+import os
 from rgbmatrix import RGBMatrix, RGBMatrixOptions
 from pydantic import BaseSettings
 from redis import asyncio as aioredis
 
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+
 # Redis config
 class Config(BaseSettings):
-    redis_url: str = 'redis://localhost:6379'
+    redis_url: str = "redis://{}:{}/1".format(REDIS_HOST, 6379)
     redis_pass: str = 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81'
 
 # Configuration for the matrix

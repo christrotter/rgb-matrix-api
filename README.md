@@ -15,6 +15,55 @@ https://www.youtube.com/watch?v=dxMZ7T-pGdI
 - [x] Pre-loaded image/gif endpoints
 - [ ] Other application endpoints
 
+# Docker build, deploy, test
+There is a script to build and run via Dockerfiles and `docker-compose`.
+```
+./run.sh
+```
+This does a few things in one command...
+- sends the whole repo over to the Raspberry Pi
+- builds the api and client docker images for local-to-the-Raspberry Pi consumption
+- runs docker-compose up
+- runs the tests
+
+You end up with...
+
+```
+CONTAINER ID   IMAGE                      COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+3152ffe41228   rgb-matrix-client:latest   "python3 -u /code/ap…"   45 seconds ago   Up 36 seconds                                               client
+e07d31609980   rgb-matrix-api:latest      "uvicorn app-api.mai…"   54 seconds ago   Up 35 seconds   0.0.0.0:8000->8000/tcp, :::8000->8000/tcp   api
+8e0727bd1f0b   redis:6.2-alpine           "docker-entrypoint.s…"   57 seconds ago   Up 41 seconds   0.0.0.0:6379->6379/tcp, :::6379->6379/tcp   redis
+```
+
+# Development
+The dev workflow looks like this...
+- Run deploy.sh
+- Have the logging open on separate terminals
+- Google stuff
+
+I used print statements to help with debugging, but deleted/disabled them to help CPU usage.
+
+## Matrix dev
+This part is trickier...I really should have built a simple matrix test app that did nothing but allow me to mess around.
+
+Anyways, here are some working examples of matrix code...
+``` python
+# working fill
+matrix.Fill(100,100,100)
+
+# working image display, sort of...it's 11 pixels short...the resize function fixed that.  weird.
+# i'm exporting them at the right size...?
+image = Image.open("icons/inactive.png")
+resized_image = image.resize((96,32)) # forcing the resize here helps...but odd pixel results
+matrix.SetImage(resized_image.convert('RGB'))
+
+# working draw text using the graphics library
+font = graphics.Font()
+font.LoadFont("fonts/10x20.bdf")
+colour = graphics.Color(100, 100, 100)
+graphics.DrawText(matrix, font, 8, 22, colour, "INACTIVE")
+```
+
 # Architecture
 ![](images/rgb-matrix-diagram.png)
 
@@ -40,9 +89,6 @@ Quick DIY job on my part...
 You are sudo installing a lot because the matrix libraries require sudo access for performance reasons.
 
 ```
-brew install fastapi OR pip install fastapi
-sudo pip install "uvicorn[standard]"
-sudo pip install aioredis
 curl -sSL https://get.docker.com | sh
 sudo usermod -aG docker pi
 docker run hello-world
@@ -62,18 +108,3 @@ cd ~/git/rpi-rgb-led-matrix/bindings/python
 make build-python PYTHON=$(command -v python3)
 sudo make install-python PYTHON=$(command -v python3)
 ```
-
-# Docker environment
-We need to run the api, redis, and the matrix-runner.
-- [ ] TODO: move api and matrix-runner into docker
-
-# Development
-The dev workflow looks like this...
-- Run deploy.sh
-  - this copies all files over rsync
-  - restarts the service
-- Run deploy-swiftbar.sh
-  - this copies your swiftbar plugin to the right place, and it should automatically start working
-- Run test.sh
-  - this makes curl calls to test the functionality of your changes
-- Look at the logging output to see what's happening
