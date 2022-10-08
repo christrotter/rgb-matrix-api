@@ -1,0 +1,7 @@
+uvicorn>=0.15.0,<0.16.0
+aioredis==2.0.1
+async_timeout==4.0.2
+fastapi==0.85.0
+Pillow==9.2.0
+pydantic==1.10.2
+redis==4.3.4

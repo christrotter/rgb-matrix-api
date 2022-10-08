@@ -13,11 +13,10 @@ services:
     restart: always
     ports:
      - '8000:8000'
-    command: ./run-api.sh
   client:
     image: rgb-matrix-client:latest
     restart: always
-    command: ./run-client.sh
+    privileged: true
 volumes:
   cache:
     driver: local
