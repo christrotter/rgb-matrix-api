@@ -14,7 +14,7 @@ from PIL import ImageFont
 import MatrixSettings
 config = MatrixSettings.Config() # redis config
 matrix = RGBMatrix(options=MatrixSettings.options)
-large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/10x20.pil")
+large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/9x15B.pil")
 small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
 #buffer = matrix.CreateFrameCanvas() # note for later...cuz i suspect we'll have to move to images vs. 'fill' or 'text'
 
@@ -28,18 +28,16 @@ loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice acc
 
 async def drawTime():
     colour = white
-    time_font = small_font
+    time_font = large_font
     time_image = Image.new("RGB", (96, 32), 0)
     draw = ImageDraw.Draw(time_image)
-    date_str = time.strftime("%d %b")
+    date_month = time.strftime("%b")
+    date_month_short = date_month[0:2]
+    date_str = time.strftime(date_month_short + "%d %H:%M")
     date_xoffset, date_height = time_font.getsize(date_str)
-    date_xoffset = 2 #int((96 - date_xoffset) /2)
-    time_str = time.strftime("%I:%M%p").lower()
-    time_xoffset, time_height = time_font.getsize(time_str)
-    time_xoffset = 35 #int((96 - time_xoffset) /2)
-    upper_offset = int((32 - (date_height + time_height)) / 2)
+    date_xoffset = 0
+    upper_offset = -1
     draw.text((date_xoffset, upper_offset), date_str, colour, font=time_font)
-    draw.text((time_xoffset, date_height + upper_offset), time_str, colour, font=time_font)
     matrix.SetImage(time_image, 1, 0)
 
 """
