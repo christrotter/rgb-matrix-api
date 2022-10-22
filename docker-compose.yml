@@ -9,6 +9,10 @@ services:
     command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
     volumes:
       - cache:/data
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
   api:
     container_name: api
     image: rgb-matrix-api:latest
@@ -21,6 +25,10 @@ services:
       - redis
     volumes:
       - /etc/localtime:/etc/localtime
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
   client:
     container_name: client
     image: rgb-matrix-client:latest
@@ -32,6 +40,10 @@ services:
       - /etc/localtime:/etc/localtime
     depends_on:
       - redis
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
 volumes:
   cache:
     driver: local

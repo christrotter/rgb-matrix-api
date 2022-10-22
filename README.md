@@ -142,3 +142,11 @@ cd ~/git/rpi-rgb-led-matrix/bindings/python
 make build-python PYTHON=$(command -v python3)
 sudo make install-python PYTHON=$(command -v python3)
 ```
+
+# Weather integration
+Coordinates: 43.947678795438065, -78.85681284162675
+api.windy.com rate limit is 500/day - 1440 minutes/day, 288/day is every 5m
+https://api.windy.com/map-forecast/docs
+https://api.windy.com/point-forecast/docs
+interesting: https://github.com/jim-easterbrook/pywws
+
