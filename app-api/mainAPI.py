@@ -49,6 +49,7 @@ async def fetch_zoom_state():
 async def startup_event():
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     await redis.set("zoom_state", "inactive")
+    await redis.set("full_board_state", "zoom_indicator")
     value = await redis.get("zoom_state")
     print("startup: redis value is:",value)
     await redis.publish("ch-zoom", "Hello from FastAPI!")

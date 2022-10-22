@@ -1,17 +1,24 @@
 #!/bin/bash
 SERVER="192.168.86.23"
 
-rsync -az --force --delete --progress \
-    --exclude-from=.gitignore \
-    -e "ssh -p22" ./ \
-    pi@$SERVER:/home/pi/git/rgb-matrix-api
+if [[ $1 == "sync-only" ]]; then
+    rsync -az --force --delete --progress \
+        --exclude-from=.gitignore \
+        -e "ssh -p22" ./ \
+        pi@$SERVER:/home/pi/git/rgb-matrix-api
+else [ -z $1 ]
+    rsync -az --force --delete --progress \
+        --exclude-from=.gitignore \
+        -e "ssh -p22" ./ \
+        pi@$SERVER:/home/pi/git/rgb-matrix-api
 
 
-echo "Triggering the build on the remote Raspberry Pi..."
-ssh pi@$SERVER 'bash -s' < ./build-n-run.sh
+    echo "Triggering the build on the remote Raspberry Pi..."
+    ssh pi@$SERVER 'bash -s' < ./build-n-run.sh
 
-echo "Sleeping to let the client app spool up..."
-sleep 5
+    echo "Sleeping to let the client app spool up..."
+    sleep 5
 
-echo "Running the tests..."
-source ./test.sh
+    echo "Running the tests..."
+    source ./test.sh
+fi
