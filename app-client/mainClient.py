@@ -26,7 +26,7 @@ white = 100,100,100
 
 loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
 
-async def drawTime():
+async def drawIdle():
     colour = white
     time_font = large_font
     time_image = Image.new("RGB", (96, 32), 0)
@@ -39,6 +39,11 @@ async def drawTime():
     upper_offset = -1
     draw.text((date_xoffset, upper_offset), date_str, colour, font=time_font)
     matrix.SetImage(time_image, 1, 0)
+
+async def drawFullBoardImage(image_name):
+    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")
+    resized_image = image.resize((96,32))
+    matrix.SetImage(resized_image.convert('RGB'))
 
 """
     paint_matrix: This async function acts on other state pulled from redis keys and modifies the rgb matrix accordingly.
@@ -54,15 +59,11 @@ async def paint_matrix():
                     # state has changed, let's clear the matrix to remove any ghosting; this helped!
                     matrix.Clear()
                 if zoom_state == "muted":
-                    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/muted.png")
-                    resized_image = image.resize((96,32))
-                    matrix.SetImage(resized_image.convert('RGB'))
+                    await drawFullBoardImage("muted")
                 if zoom_state == "unmuted":
-                    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/unmuted.png")
-                    resized_image = image.resize((96,32))
-                    matrix.SetImage(resized_image.convert('RGB'))
+                    await drawFullBoardImage("unmuted")
                 if zoom_state == "inactive":
-                    await drawTime()
+                    await drawIdle()
                 interrupted = True
         except asyncio.TimeoutError:
             pass
@@ -80,7 +81,6 @@ async def get_zoom_state():
     redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     async with redis.client() as conn:
         zoom_state = await conn.get("zoom_state")
-        #print("image file is: " + image_file)
         return zoom_state
 
 """
@@ -120,10 +120,10 @@ async def getStateLoop():
     async def pubsub():
         redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
         while not task.done():
-            subs = dict(await redis.pubsub_numsub("ch-*"))
+            subs = dict(await redis.pubsub_numsub("ch-*")) # not quite sure what this block is doing
             if subs["ch-*"] == 1:
                 break
-            await asyncio.sleep(0) # why is this here...and why zero
+            await asyncio.sleep(0) # this is your throttle for the loop
         await redis.close()
     await pubsub()
 
