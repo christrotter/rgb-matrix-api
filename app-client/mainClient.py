@@ -125,9 +125,9 @@ async def pubsub():
                 pass
 
     async with psub as p:
-        await p.subscribe("ch-zoom")
+        await p.psubscribe("ch-*")
         await reader(p)
-        await p.unsubscribe("ch-zoom")
+        await p.punsubscribe("ch-*")
 
     await psub.close()
 
