@@ -97,29 +97,9 @@ async def pubsub():
                 async with async_timeout.timeout(5):
                     message = await channel.get_message(ignore_subscribe_messages=True)
                     if message is not None:
-                        # too many print statements here causes the code to blow up
                         print(f"(Reader) Message Received: {message}")
-                        if message["data"] == STOPWORD:
-                            #print("(Reader) STOP")
-                            break
-                        if message["data"] == "muted":
-                            #print("(Reader) We got a muted message.")
-                            async with redis.client() as conn:
-                                await conn.set("zoom_state", "muted")
-                                #val = await conn.get("zoom_state")
-                            #print("(Reader) zoom_state: " + val)
-                        if message["data"] == "unmuted":
-                            #print("(Reader) We got an unmuted message.")
-                            async with redis.client() as conn:
-                                await conn.set("zoom_state", "unmuted")
-                                #val = await conn.get("zoom_state")
-                            #print("(Reader) zoom_state: " + val)
-                        if message["data"] == "inactive":
-                            #print("(Reader) We got an inactive message.")
-                            async with redis.client() as conn:
-                                await conn.set("zoom_state", "inactive")
-                                #val = await conn.get("zoom_state")
-                            #print("(Reader) zoom_state: " + val)
+                        async with redis.client() as conn:
+                            await conn.set("zoom_state",message["data"])
                     await asyncio.sleep(0.01)
             except asyncio.TimeoutError:
                 pass
