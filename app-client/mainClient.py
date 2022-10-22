@@ -86,7 +86,7 @@ async def get_zoom_state():
 """
     pubsub: This async function subscribes to the redis pubsub channel(s) and updates the redis state keys.
 """
-async def pubsub():
+async def readPubsubLoop():
     print("(pubsub) Starting pubsub reader...")
     redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     psub = redis.pubsub()
@@ -99,7 +99,7 @@ async def pubsub():
                     if message is not None:
                         print(f"(Reader) Message Received: {message}")
                         async with redis.client() as conn:
-                            await conn.set("zoom_state",message["data"])
+                            await conn.set("zoom_state",message["data"]) # so we'll eventually change the 'zoom_state' to something generic
                     await asyncio.sleep(0.01)
             except asyncio.TimeoutError:
                 pass
@@ -114,18 +114,18 @@ async def pubsub():
 """
     subscriber: This async function creates the long-running task to pull messages.
 """
-async def subscriber():
-    print("(async-subscriber) Redis pubsub subscriber async startup...")
-    tsk = asyncio.create_task(pubsub())
-    async def pull_messages():
+async def getStateLoop():
+    print("(async-subscriber) Redis pubsub async startup, constantly polling for new state...")
+    task = asyncio.create_task(readPubsubLoop())
+    async def pubsub():
         redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
-        while not tsk.done():
-            subs = dict(await redis.pubsub_numsub("ch-zoom"))
-            if subs["ch-zoom"] == 1:
+        while not task.done():
+            subs = dict(await redis.pubsub_numsub("ch-*"))
+            if subs["ch-*"] == 1:
                 break
             await asyncio.sleep(0) # why is this here...and why zero
         await redis.close()
-    await pull_messages()
+    await pubsub()
 
 """
     init:   this is/was necessary to ensure first runs would not crash due to null key returns;
@@ -143,10 +143,13 @@ if __name__ == '__init__':
 """
 try:
     print("(main) RGB client startup...")
+
     print("(main) Starting subscriber async task...")
-    asyncio.ensure_future(subscriber())
+    asyncio.ensure_future(getStateLoop())
+
     print("(main) Starting matrix painter...")
     asyncio.ensure_future(paint_matrix())
+
     print("(main) Entering infinite loop.")
     loop.run_forever()
 except KeyboardInterrupt:
