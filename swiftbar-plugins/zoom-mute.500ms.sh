@@ -85,12 +85,12 @@ if [ "$zm_status" == "off" ]; then
 	echo "⚪️" #text version echo "Zoom Not Running"
 	echo ---
 	echo "Launch Zoom| bash='$0' param1=launch terminal=false"
-    if [[ $ENABLED ]]; then
-        STATE=`curl --connect-timeout 1 -X GET $API_URL/zoom/state | tr -d \"`
-        if [ "$STATE" != "inactive" ]; then
-            curl --connect-timeout 1 -X PUT $API_URL/zoom/inactive
-        fi
-    fi
+    #if [[ $ENABLED ]]; then
+    #    STATE=`curl --connect-timeout 1 -X GET $API_URL/zoom/state | tr -d \"`
+    #    if [ "$STATE" != "inactive" ]; then
+    #        curl --connect-timeout 1 -X PUT $API_URL/zoom/inactive
+    #    fi
+    #fi
     exit
 fi
 
