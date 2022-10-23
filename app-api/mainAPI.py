@@ -50,16 +50,10 @@ api_router = APIRouter()
     type: this is useless...
     time: timestamp used for expiry calculations
 """
-async def send_client_json(function, state, override):
+async def send_client_json(function, jsonDict):
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     channel = "ch-" + function
-    stateDict = {
-        'function': function,
-        'state': state,
-        'type': override,
-        'time': time.time()
-    }
-    jsonBlob = json.dumps(stateDict)
+    jsonBlob = json.dumps(jsonDict)
     print(jsonBlob)
     await redis.publish(channel,jsonBlob)
 
@@ -93,7 +87,13 @@ async def get_zoom_state():
 
 @api_router.put("/zoom/{zoom_state}", status_code=200)
 async def get_model(zoom_state: ZoomState):
-    await send_client_json("zoom", zoom_state, "no-override")
+    configDict = {
+        'function': 'zoom',
+        'state': zoom_state,
+        'type': 'override',
+        'time': time.time()
+    }
+    await send_client_json("zoom",configDict)
 
 """
     so a big problem here is that a network call is associated with an entire board state...
@@ -103,7 +103,13 @@ async def get_model(zoom_state: ZoomState):
 """
 @api_router.put("/network/{network_state}", status_code=200)
 async def get_model(network_state: NetworkState):
-    await send_client_json("idle", network_state, "colour")
+    configDict = {
+        'function': 'network',
+        'network_indicator_colour': network_state,
+        'type': 'override',
+        'time': time.time()
+    }
+    await send_client_json("network",configDict)
 
 """
     ############# APP STARTUP SECTION #############

@@ -24,7 +24,7 @@ STOPWORD = "STOP" # not sure this is ever really functionally used...is it some 
 # not sure how to declare this any less jankily
 running = True
 zoom_state = ''
-config_json = {"function": "idle", "state": "green", "type": "colour", "time": 1666557636.784309}
+config_json = {"function": "network", "network_indicator_colour": "green", "type": "colour", "time": 1666557636.784309}
 config_reset_json = config_json
 indicator1_colour="white"
 indicator2_colour="white"
@@ -92,11 +92,25 @@ async def paint_matrix():
                 current_time = time.time()
                 message_time = config_json['time']
                 time_delta = current_time - message_time
-
                 async def resetConfig():
                     print(f"Resetting config to: {config_reset_json}")
                     async with redis.client() as conn:
                         await conn.set("json", str(config_reset_json))
+                async def getLastNetworkIndicatorColour():
+                    async with redis.client() as conn:
+                        network_indicator_colour = await conn.get("network_indicator_colour")
+                    return network_indicator_colour
+                if 'network_indicator_colour' in config_json:
+                    async with redis.client() as conn:
+                        await conn.set("network_indicator_colour",config_json['network_indicator_colour'])
+                    network_indicator_colour = config_json['network_indicator_colour']
+                else:
+                    network_indicator_colour = await getLastNetworkIndicatorColour()
+
+                # global variables, i.e. indicators are globally important
+                indicator1_colour   = "white"
+                indicator2_colour   = "white"
+                indicator3_colour   = network_indicator_colour
 
                 if last_function != config_json['function']:
                     # state has changed, let's clear the matrix to remove any ghosting; this helped!
@@ -104,18 +118,13 @@ async def paint_matrix():
                     print("State has changed, clearing matrix!")
                     matrix.Clear()
 
-                # global variables, i.e. indicators are globally important
-                indicator1_colour   = "white"
-                indicator2_colour   = "white"
-                indicator3_colour   = config_json['state']
-
                 # counters - where we reset to idle
                 if last_function == "zoom" and time_delta > 2:
                     print(f"Resetting config after zoom usage and time_delta: {time_delta}")
                     await resetConfig()
 
                 # config logic tree
-                if config_json['function'] == "idle":
+                if config_json['function'] == "network":
                     text_colour         = "white"
 
                     await drawIdle(text_colour, indicator1_colour, indicator2_colour, indicator3_colour)
@@ -123,9 +132,9 @@ async def paint_matrix():
                 if config_json['function'] == "zoom":
                     # we got a zoom call, reset the zoom expiry timer
                     if config_json['state'] == "muted":
-                        await drawFullImage("muted", indicator1_colour, indicator2_colour, "white")
+                        await drawFullImage("muted", indicator1_colour, indicator2_colour, indicator3_colour)
                     if config_json['state'] == "unmuted":
-                        await drawFullImage("unmuted", indicator1_colour, indicator2_colour, "white")
+                        await drawFullImage("unmuted", indicator1_colour, indicator2_colour, indicator3_colour)
 
                 interrupted = True
         except asyncio.TimeoutError:
