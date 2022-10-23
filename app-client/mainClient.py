@@ -24,8 +24,8 @@ STOPWORD = "STOP" # not sure this is ever really functionally used...is it some 
 # not sure how to declare this any less jankily
 running = True
 zoom_state = ''
-board_json = {"board": "idle", "state": "green", "type": "colour", "time": 1666557636.784309}
-board_reset_json = board_json
+config_json = {"function": "idle", "state": "green", "type": "colour", "time": 1666557636.784309}
+config_reset_json = config_json
 indicator1_colour="white"
 indicator2_colour="white"
 indicator3_colour="white"
@@ -36,7 +36,7 @@ loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice acc
     ############   FUNCTIONS SECTION   ############
 """
 async def drawIndicators(draw, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
-    # indicators, bottom two pixel rows of each board
+    # indicators, bottom two pixel rows of each matrix board
     # need to pull this out into drawIndicators, so we can composite canvas things up here...zoom full screen is only a part
     draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
     draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
@@ -60,7 +60,7 @@ async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_co
 
     matrix.SetImage(idle_image, 1, 0)
 
-async def drawFullBoardImage(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+async def drawFullImage(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
     print(f"drawFull vars: {image_name} {indicator1_colour} {indicator2_colour} {indicator3_colour}")
     image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")
     resized_image = image.resize((96,30))
@@ -77,55 +77,55 @@ async def drawFullBoardImage(image_name, indicator1_colour="white", indicator2_c
     This is where we define the business logic (cases).
 """
 async def paint_matrix():
-    global board_json, board_reset_json, interrupted
+    global config_json, config_reset_json, interrupted
     redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
 
     while running:
         try:
             async with async_timeout.timeout(5):
-                last_board = board_json['board']
+                last_function = config_json['function']
                 # why this text jankiness?  because of redis.pubsub(message=json) -> redis.kv(data=json) -> here
                 # i'm sure there are problems here - and chief might be 'y u have pubsub at all?!'
-                value = (await get_board_state()).strip('\"')
+                value = (await get_function_json()).strip('\"')
                 fixed_value = value.replace('\'', '"')
-                board_json = json.loads(fixed_value)
+                config_json = json.loads(fixed_value)
                 current_time = time.time()
-                message_time = board_json['time']
+                message_time = config_json['time']
                 time_delta = current_time - message_time
 
-                async def resetBoard():
-                    print(f"Resetting board to: {board_reset_json}")
+                async def resetConfig():
+                    print(f"Resetting config to: {config_reset_json}")
                     async with redis.client() as conn:
-                        await conn.set("json", str(board_reset_json))
+                        await conn.set("json", str(config_reset_json))
 
-                if last_board != board_json['board']:
+                if last_function != config_json['function']:
                     # state has changed, let's clear the matrix to remove any ghosting; this helped!
-                    # worth calling out that we are only looking at board state here...
+                    # worth calling out that we are only looking at 'function' here...
                     print("State has changed, clearing matrix!")
                     matrix.Clear()
 
                 # global variables, i.e. indicators are globally important
                 indicator1_colour   = "white"
                 indicator2_colour   = "white"
-                indicator3_colour   = board_json['state']
+                indicator3_colour   = config_json['state']
 
                 # counters - where we reset to idle
-                if last_board == "zoom" and time_delta > 2:
-                    print(f"Resetting board after zoom usage and time_delta: {time_delta}")
-                    await resetBoard()
+                if last_function == "zoom" and time_delta > 2:
+                    print(f"Resetting config after zoom usage and time_delta: {time_delta}")
+                    await resetConfig()
 
-                # board logic tree
-                if board_json['board'] == "idle":
+                # config logic tree
+                if config_json['function'] == "idle":
                     text_colour         = "white"
 
                     await drawIdle(text_colour, indicator1_colour, indicator2_colour, indicator3_colour)
 
-                if board_json['board'] == "zoom":
+                if config_json['function'] == "zoom":
                     # we got a zoom call, reset the zoom expiry timer
-                    if board_json['state'] == "muted":
-                        await drawFullBoardImage("muted", indicator1_colour, indicator2_colour, "white")
-                    if board_json['state'] == "unmuted":
-                        await drawFullBoardImage("unmuted", indicator1_colour, indicator2_colour, "white")
+                    if config_json['state'] == "muted":
+                        await drawFullImage("muted", indicator1_colour, indicator2_colour, "white")
+                    if config_json['state'] == "unmuted":
+                        await drawFullImage("unmuted", indicator1_colour, indicator2_colour, "white")
 
                 interrupted = True
         except asyncio.TimeoutError:
@@ -133,29 +133,26 @@ async def paint_matrix():
         await asyncio.sleep(.1)
 
 """
-    get_board_state: This async function calls redis and checks the json key, and returns it.
+    get_function_json: This async function calls redis and checks the json key, and returns it.
     Why are we using a redis key get?
     Because I didn't know how to share variable value changes between async threads.
     So redis keys become our shared memory.
     ¯\_(ツ)_/¯
     Now that I've gotten it working, I have thoughts on ways of not having two redis calls, but, it works atm, so...
 """
-async def get_board_state():
+async def get_function_json():
     redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     async with redis.client() as conn:
-        board_json = json.dumps(await conn.get("json"))
+        function_json = json.dumps(await conn.get("json"))
 
-        return board_json
+        return function_json
 
 
 """
     ############   LOOPS SECTION   ############
 """
 """
-    pubsub: This async function subscribes to the redis pubsub channel(s) and updates the redis state keys.
-        board: main board type (zoom, idle, other...)
-        state: per-board set of values (e.g. for zoom: muted, unmuted)
-        type: override, idle, momentary (e.g. for zoom: override)
+    pubsub: This async function subscribes to the redis pubsub channel(s) and updates the redis json (config) key.
 """
 async def readPubsubLoop():
     print("(pubsub) Starting pubsub reader...")

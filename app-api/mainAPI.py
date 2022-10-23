@@ -45,16 +45,16 @@ api_router = APIRouter()
 """
     send_client_json: how we send the json blob over to the client, c/o Redis pubsub
 
-    board: theme? e.g. zoom
+    function: e.g. zoom
     state: e.g. idle, override, momentary
     type: this is useless...
     time: timestamp used for expiry calculations
 """
-async def send_client_json(board, state, override):
+async def send_client_json(function, state, override):
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
-    channel = "ch-" + board
+    channel = "ch-" + function
     stateDict = {
-        'board': board,
+        'function': function,
         'state': state,
         'type': override,
         'time': time.time()
@@ -78,8 +78,7 @@ async def fetch_zoom_state():
 @api_router.on_event('startup')
 async def startup_event():
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
-    await redis.set("state", "green")
-    await redis.set("full_board_state", "zoom_indicator")
+    await redis.set("function", "idle")
     value = await redis.get("zoom_state")
     print("startup: redis value is:",value)
 
