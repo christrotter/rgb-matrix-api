@@ -4,6 +4,7 @@ from enum import Enum
 from pydantic import BaseModel
 from pydantic import BaseSettings
 import json
+import time
 import asyncio
 import async_timeout
 import aioredis
@@ -41,7 +42,8 @@ async def toggle_state(board, state, override):
     stateDict = {
         'board': board,
         'state': state,
-        'type': override
+        'type': override,
+        'time': time.time()
     }
     jsonBlob = json.dumps(stateDict)
     print(jsonBlob)
@@ -75,6 +77,6 @@ async def get_model(zoom_state: ZoomState):
 
 @api_router.put("/network/{network_state}", status_code=200)
 async def get_model(network_state: NetworkState):
-    await toggle_state("network", network_state, "colour")
+    await toggle_state("idle", network_state, "colour")
 
 app.include_router(api_router)
