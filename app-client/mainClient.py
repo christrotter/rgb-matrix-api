@@ -26,11 +26,23 @@ running = True
 zoom_state = ''
 board_json = {"board": "idle", "state": "green", "type": "colour", "time": 1666557636.784309}
 board_reset_json = board_json
+indicator1_colour="white"
+indicator2_colour="white"
+indicator3_colour="white"
+
 loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
 
 """
     ############   FUNCTIONS SECTION   ############
 """
+async def drawIndicators(draw, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+    # indicators, bottom two pixel rows of each board
+    # need to pull this out into drawIndicators, so we can composite canvas things up here...zoom full screen is only a part
+    draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
+    draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
+    draw.rectangle([63,30,96,31], fill=indicator3_colour, width=2)
+    return draw
+
 async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
     time_font = large_font
     idle_image = Image.new("RGB", (96, 32), 0) # set our canvas size
@@ -44,18 +56,20 @@ async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_co
     date_xoffset = 0
     upper_offset = -1
     draw.text((date_xoffset, upper_offset), date_str, text_colour, font=time_font)
+    draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
 
-    # indicators, bottom two pixel rows of each board
-    # need to pull this out into drawIndicators, so we can composite canvas things up here...zoom full screen is only a part
-    draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
-    draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
-    draw.rectangle([63,30,96,31], fill=indicator3_colour, width=2)
     matrix.SetImage(idle_image, 1, 0)
 
-async def drawFullBoardImage(image_name):
+async def drawFullBoardImage(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+    print(f"drawFull vars: {image_name} {indicator1_colour} {indicator2_colour} {indicator3_colour}")
     image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")
     resized_image = image.resize((96,30))
+    indicators_image = Image.new("RGB", (96, 2), 0) # set our canvas size
+    draw = ImageDraw.Draw(indicators_image)
+    draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
+
     matrix.SetImage(resized_image.convert('RGB'))
+    matrix.SetImage(indicators_image, -1, 30)
 
 """
     paint_matrix: This async function acts on other state pulled from redis keys and modifies the rgb matrix accordingly.
@@ -90,6 +104,11 @@ async def paint_matrix():
                     print("State has changed, clearing matrix!")
                     matrix.Clear()
 
+                # global variables, i.e. indicators are globally important
+                indicator1_colour   = "white"
+                indicator2_colour   = "white"
+                indicator3_colour   = board_json['state']
+
                 # counters - where we reset to idle
                 if last_board == "zoom" and time_delta > 2:
                     print(f"Resetting board after zoom usage and time_delta: {time_delta}")
@@ -98,17 +117,15 @@ async def paint_matrix():
                 # board logic tree
                 if board_json['board'] == "idle":
                     text_colour         = "white"
-                    indicator1_colour   = "white"
-                    indicator2_colour   = "white"
-                    indicator3_colour   = board_json['state']
+
                     await drawIdle(text_colour, indicator1_colour, indicator2_colour, indicator3_colour)
 
                 if board_json['board'] == "zoom":
                     # we got a zoom call, reset the zoom expiry timer
                     if board_json['state'] == "muted":
-                        await drawFullBoardImage("muted")
+                        await drawFullBoardImage("muted", indicator1_colour, indicator2_colour, "white")
                     if board_json['state'] == "unmuted":
-                        await drawFullBoardImage("unmuted")
+                        await drawFullBoardImage("unmuted", indicator1_colour, indicator2_colour, "white")
 
                 interrupted = True
         except asyncio.TimeoutError:
@@ -130,9 +147,6 @@ async def get_board_state():
 
         return board_json
 
-"""
-    ############   END FUNCTIONS SECTION   ############
-"""
 
 """
     ############   LOOPS SECTION   ############
@@ -183,10 +197,6 @@ async def getStateLoop():
             await asyncio.sleep(0) # this is your throttle for the loop
         await redis.close()
     await pubsub()
-"""
-    ############   END LOOPS SECTION   ############
-"""
-
 
 """
     init:   this is/was necessary to ensure first runs would not crash due to null key returns;

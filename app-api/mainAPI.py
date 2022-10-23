@@ -9,8 +9,15 @@ import asyncio
 import async_timeout
 import aioredis
 
+"""
+    ############# CONFIG SECTION #############
+"""
 REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+STOPWORD = "STOP"
 
+"""
+    ############# CLASSES SECTION #############
+"""
 class Config(BaseSettings):
     redis_url: str = "redis://{}:{}/0".format(REDIS_HOST, 6379)
     redis_pass: str = 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81'
@@ -25,18 +32,25 @@ class NetworkState(str, Enum):
     yellow      = "yellow"
     red         = "red"
 
+"""
+    ############# WHATEVER THESE ARE SECTION #############
+"""
 config = Config()
 app = FastAPI()
 api_router = APIRouter()
-STOPWORD = "STOP"
 
-# new replacement for rgb_toggle
 """
+    ############# FUNCTIONS SECTION #############
+"""
+"""
+    send_client_json: how we send the json blob over to the client, c/o Redis pubsub
+
     board: theme? e.g. zoom
     state: e.g. idle, override, momentary
     type: this is useless...
+    time: timestamp used for expiry calculations
 """
-async def toggle_state(board, state, override):
+async def send_client_json(board, state, override):
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     channel = "ch-" + board
     stateDict = {
@@ -49,10 +63,17 @@ async def toggle_state(board, state, override):
     print(jsonBlob)
     await redis.publish(channel,jsonBlob)
 
+"""
+    the swiftbar plugin needs this; queries state and acts
+"""
 async def fetch_zoom_state():
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     value = await redis.get("zoom_state")
     return value
+
+"""
+    ############# API SECTION #############
+"""
 
 @api_router.on_event('startup')
 async def startup_event():
@@ -73,10 +94,19 @@ async def get_zoom_state():
 
 @api_router.put("/zoom/{zoom_state}", status_code=200)
 async def get_model(zoom_state: ZoomState):
-    await toggle_state("zoom", zoom_state, "no-override")
+    await send_client_json("zoom", zoom_state, "no-override")
 
+"""
+    so a big problem here is that a network call is associated with an entire board state...
+    we want this to only touch the indicator
+    this requires a shift in how we process the board...
+    put /network/state should be its own thing; so we need to start looking at channel sources on the client end
+"""
 @api_router.put("/network/{network_state}", status_code=200)
 async def get_model(network_state: NetworkState):
-    await toggle_state("idle", network_state, "colour")
+    await send_client_json("idle", network_state, "colour")
 
+"""
+    ############# APP STARTUP SECTION #############
+"""
 app.include_router(api_router)

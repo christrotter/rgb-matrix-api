@@ -38,6 +38,7 @@ services:
       - /etc/localtime:/etc/localtime
     depends_on:
       - redis
+      - api
     logging:
         driver: "json-file"
         options:
