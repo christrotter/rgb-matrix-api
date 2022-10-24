@@ -37,6 +37,7 @@ loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice acc
 """
 async def drawIndicators(draw, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
     # indicators, bottom two pixel rows of each matrix board
+    # how can we get a 1px space between each?
     draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
     draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
     draw.rectangle([63,30,96,31], fill=indicator3_colour, width=2)

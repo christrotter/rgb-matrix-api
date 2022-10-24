@@ -8,32 +8,29 @@ REDIS_CONNECT="redis-cli -h $SERVER -p 6379 --pass $REDIS_PASS"
 echo "Running our tests..."
 
 GET_SERVER=`curl -s -X GET $API_URL`
-echo "Does the server respond?: $GET_SERVER"
+echo "Is the API server up?: $GET_SERVER"
 
 REDIS_RESPONSE=`$REDIS_CONNECT ping`
-echo "Can we connect to redis?: $REDIS_RESPONSE"
-#REDIS_PUB_RESPONSE=`$REDIS_CONNECT publish ch-zoom testing1234`
-echo "Can we publish to redis?: $REDIS_PUB_RESPONSE"
-# this is hard to do in a one-liner, needs a client really
-#REDIS_SUB_RESPONSE=`$REDIS_CONNECT subscribe ch-zoom`
-#echo "Can we subscribe to redis?: $REDIS_SUB_RESPONSE"
+echo "Is Redis up?: $REDIS_RESPONSE"
 
-echo "NOTE NOTE IF SWIFTBAR IS RUNNING THE SLEEP DOESN'T KEEP THE MATRIX LIT!!!!"
-
-PUT_ZOOM_MUTED=`curl -s -X PUT $API_URL/zoom/muted`
-PUT_BOARD_STATE=`curl -s -X PUT $API_URL/network/yellow`
-echo "Putting muted zoom state: $PUT_ZOOM_MUTED"
+echo "Testing network indicator colours..."
+PUT_NETWORK_RED=`curl -s -X PUT $API_URL/network/red`
+echo "Red..."
 sleep 2
-#echo "Did a message show up in redis?" # this is hard to do in a one-liner, needs a client really/ thus the limitations of not-a-framework
+PUT_NETWORK_YELLOW=`curl -s -X PUT $API_URL/network/yellow`
+echo "Yellow..."
+sleep 2
+PUT_NETWORK_GREEN=`curl -s -X PUT $API_URL/network/green`
+echo "Green..."
+sleep 2
 
-#REDIS_CHECK_PUT_ZOOM_MUTED=`$REDIS_CONNECT get zoom_state`
-#echo "Did the call show up in redis?: $REDIS_CHECK_PUT_ZOOM_MUTED"
+echo "Testing Zoom screens..."
+PUT_ZOOM_MUTED=`curl -s -X PUT $API_URL/zoom/muted`
+echo "Putting muted zoom state..."
+sleep 2
 
 PUT_ZOOM_UNMUTED=`curl -s -X PUT $API_URL/zoom/unmuted`
-echo "Putting unmuted zoom state: $PUT_ZOOM_UNMUTED"
-sleep 2
-#PUT_ZOOM_INACTIVE=`curl -s -X PUT $API_URL/zoom/inactive`
-echo "Putting inactive zoom state: $PUT_ZOOM_INACTIVE"
+echo "Putting unmuted zoom state..."
 sleep 2
 
 
