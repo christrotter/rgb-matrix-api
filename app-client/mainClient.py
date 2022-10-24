@@ -37,10 +37,14 @@ loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice acc
 """
 async def drawIndicators(draw, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
     # indicators, bottom two pixel rows of each matrix board
-    # need to pull this out into drawIndicators, so we can composite canvas things up here...zoom full screen is only a part
     draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
     draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
     draw.rectangle([63,30,96,31], fill=indicator3_colour, width=2)
+    return draw
+
+async def drawBorderLine(draw, colour):
+    # border to separate png from indicators
+    draw.line([-1,29,96,29], fill=colour)
     return draw
 
 async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
@@ -57,19 +61,16 @@ async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_co
     upper_offset = -1
     draw.text((date_xoffset, upper_offset), date_str, text_colour, font=time_font)
     draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
-
     matrix.SetImage(idle_image, 1, 0)
 
 async def drawFullImage(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
-    print(f"drawFull vars: {image_name} {indicator1_colour} {indicator2_colour} {indicator3_colour}")
-    image = Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")
-    resized_image = image.resize((96,30))
-    indicators_image = Image.new("RGB", (96, 2), 0) # set our canvas size
-    draw = ImageDraw.Draw(indicators_image)
+    image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize((96,32))).convert('RGB')
+    draw = ImageDraw.Draw(image)
+    draw = await drawBorderLine(draw, "black")
     draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
 
-    matrix.SetImage(resized_image.convert('RGB'))
-    matrix.SetImage(indicators_image, -1, 30)
+    matrix.SetImage(image, 1, 0)
+
 
 """
     paint_matrix: This async function acts on other state pulled from redis keys and modifies the rgb matrix accordingly.
@@ -124,6 +125,7 @@ async def paint_matrix():
                     await resetConfig()
 
                 # config logic tree
+                # here, idle == network, is the next fix
                 if config_json['function'] == "network":
                     text_colour         = "white"
 
