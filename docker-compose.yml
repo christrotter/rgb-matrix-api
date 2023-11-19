@@ -27,6 +27,22 @@ services:
         driver: "json-file"
         options:
             max-size: "10m"
+  config_bundler:
+    container_name: config_bundler
+    image: rgb-matrix-config_bundler:latest
+    restart: always
+    environment:
+      - REDIS_HOST=redis
+    ports:
+     - '8000:8000'
+    depends_on:
+      - redis
+    volumes:
+      - /etc/localtime:/etc/localtime
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
   client:
     container_name: client
     image: rgb-matrix-client:latest

@@ -9,6 +9,11 @@ REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
 class Config(BaseSettings):
     redis_url: str = "redis://{}:{}/0".format(REDIS_HOST, 6379)
     redis_pass: str = 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81'
+    large_font: str = '/fonts/9x15B.pil'
+    small_font: str = '/fonts/8x13B.pil'
+
+
+
 
 # Configuration for the matrix
 options = RGBMatrixOptions()

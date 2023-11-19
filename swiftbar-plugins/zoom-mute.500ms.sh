@@ -8,7 +8,7 @@
 # <bitbar.image>https://user-images.githubusercontent.com/14987234/104110931-77e27f00-5291-11eb-98fb-47cf1febd84e.png</bitbar.image>
 
 
-SERVER="192.168.86.23"
+SERVER="192.168.86.37"
 API_URL="http://$SERVER:8000"
 ENABLED=true # or set to true if you want messages flowing
 

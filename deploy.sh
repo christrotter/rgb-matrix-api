@@ -1,5 +1,5 @@
 #!/bin/bash
-SERVER="192.168.86.23"
+SERVER="192.168.86.185"
 
 if [[ $1 == "sync-only" ]]; then
     rsync -az --force --delete --progress \

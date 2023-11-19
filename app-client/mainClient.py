@@ -14,35 +14,32 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 import MatrixSettings
+
 config = MatrixSettings.Config() # redis config
 matrix = RGBMatrix(options=MatrixSettings.options)
-large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/9x15B.pil")
-small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
-#buffer = matrix.CreateFrameCanvas() # note for later...cuz i suspect we'll have to move to images vs. 'fill' or 'text'
+large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + config.large_font)
+small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + config.small_font)
+loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
 
+# todo: figure out how to put config in a config file
 STOPWORD = "STOP" # not sure this is ever really functionally used...is it some kinda redis thing?
 # not sure how to declare this any less jankily
 running = True
 zoom_state = ''
-config_json = {"function": "network", "network_indicator_colour": "green", "type": "colour", "time": 1666557636.784309}
-config_reset_json = config_json
-indicator1_colour="white"
-indicator2_colour="white"
-indicator3_colour="white"
 
-loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
+unset_colour = 'cyan'
+indicator1_colour = unset_colour
+indicator2_colour = unset_colour
+indicator3_colour = unset_colour
+
+input_config_json = {"function": "network", "network_indicator_colour": unset_colour, "type": "colour", "time": 1666557636.784309}
+config_reset_json = input_config_json
+
+
 
 """
     ############   FUNCTIONS SECTION   ############
 """
-async def drawIndicators(draw, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
-    # indicators, bottom two pixel rows of each matrix board
-    # how can we get a 1px space between each?
-    draw.rectangle([-1,30,31,31], fill=indicator1_colour, width=2)
-    draw.rectangle([31,30,63,31], fill=indicator2_colour, width=2)
-    draw.rectangle([63,30,96,31], fill=indicator3_colour, width=2)
-    return draw
-
 async def drawBorderLine(draw, colour):
     # border to separate png from indicators
     draw.line([-1,29,96,29], fill=colour)
@@ -64,13 +61,127 @@ async def drawIdle(text_colour="white", indicator1_colour="white", indicator2_co
     draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
     matrix.SetImage(idle_image, 1, 0)
 
-async def drawFullImage(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
-    image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize((96,32))).convert('RGB')
+async def drawImageBottomHalfCanvas(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+    canvas_size = '(96,16)'
+    setimage_xy_offsets = '1, 0'
+    image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize(canvas_size)).convert('RGB')
     draw = ImageDraw.Draw(image)
     draw = await drawBorderLine(draw, "black")
     draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
 
     matrix.SetImage(image, 1, 0)
+
+async def drawImageTopHalfCanvas(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+    canvas_size = '(96,16)'
+    setimage_xy_offsets = '1, 0'
+    image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize(canvas_size)).convert('RGB')
+    draw = ImageDraw.Draw(image)
+    draw = await drawBorderLine(draw, "black")
+    draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
+
+    matrix.SetImage(image, setimage_xy_offsets)
+
+async def drawImageFullCanvas(image_name, indicator1_colour="white", indicator2_colour="white", indicator3_colour="white"):
+    canvas_size = '(96,32)'
+    setimage_xy_offsets = '1, 0'
+    image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize(canvas_size)).convert('RGB')
+    draw = ImageDraw.Draw(image)
+    draw = await drawBorderLine(draw, "black")
+    draw = await drawIndicators(draw, indicator1_colour, indicator2_colour, indicator3_colour)
+
+    matrix.SetImage(image, setimage_xy_offsets)
+
+"""
+    new matrix canvas functions below
+"""
+
+example_matrix_config_json = {
+  "options": [
+    { "indicator_options": [
+      {
+        "indicator1_colour":"white",
+        "indicator2_colour":"white",
+        "indicator3_colour":"white"
+      }
+    ]},
+    { "top_half_options": [
+      {
+        "indicator1_colour":"white",
+        "indicator2_colour":"white",
+        "indicator3_colour":"white"
+      }
+    ]},
+    { "bottom_half_options": [
+      {
+        "indicator1_colour":"white",
+        "indicator2_colour":"white",
+        "indicator3_colour":"white"
+      }
+    ]},
+    { "datetime_options": [
+      {
+        "indicator1_colour":"white",
+        "indicator2_colour":"white",
+        "indicator3_colour":"white"
+      }
+    ]},
+  ]
+}
+
+async def drawFullOverlay(draw, config_json):
+    config = json.loads(config_json)
+    canvas_size = '(96,29)'
+    if 'image_name' in config:
+        image_name = config['image_name']
+        image = ((Image.open(os.path.dirname(os.path.realpath(__file__)) + "/icons/"+ image_name +".png")).resize(canvas_size)).convert('RGB')
+        draw = ImageDraw.Draw(image)
+    elif 'image_name' not in config:
+        draw.rectangle([0,0,96,29], fill='cyan', width=2)
+    return draw
+
+async def drawDateTime(draw, config_json):
+    config = json.loads(config_json)
+    text_colour="white"
+    time_font = large_font
+    canvas_location = '(0, -1)'
+    date_month = time.strftime("%b")
+    date_month_short = date_month[0:2] # only first two chars, to save matrix space
+    date_str = time.strftime(date_month_short + "%d %H:%M") # 24h time, to save matrix space
+    draw.text(canvas_location, date_str, text_colour, font=time_font)
+    return draw
+
+async def drawIndicators(draw, config_json):
+    # indicators, bottom two pixel rows of each matrix board
+    config = json.loads(config_json)
+    # todo: how can we get a 1px space between each?...trying...
+    # these imply canvas locations...indicators can never change canvas locations
+    draw.rectangle([0,30,30,31], fill=config['indicator1_colour'], width=2)
+    draw.rectangle([32,30,62,31], fill=config['indicator2_colour'], width=2)
+    draw.rectangle([64,30,96,31], fill=config['indicator3_colour'], width=2)
+    return draw
+
+async def drawMatrixCanvas(config_json):
+    canvas_size = '(96,32)'
+    setimage_xy_offsets = '0, 0'
+    matrix_canvas = Image.new("RGB", canvas_size, 0) # set our canvas size
+    draw_on_canvas = ImageDraw.Draw(matrix_canvas)
+
+    # here we append stuff to the canvas; assumption is that you are always drawing every part of the canvas
+    # if the options are present, draw them
+    # this will require clearly defined draw spaces...
+    #if 'top_half_options' in config_json:
+    #    draw_on_canvas = await drawTopHalf(draw_on_canvas, config_json['top_half_options'])
+    #if 'bottom_half_options' in config_json:
+    #    draw_on_canvas = await drawBottomHalf(draw_on_canvas, config_json['bottom_half_options'])
+
+    if 'full_overlay_options' in config_json:
+        draw_on_canvas = await drawFullOverlay(draw_on_canvas, config_json['full_overlay_options']) # e.g. zoom
+    if 'datetime_options' in config_json:
+        draw_on_canvas = await drawDateTime(draw_on_canvas, config_json['datetime_options'])
+    if 'indicator_options' in config_json:
+        draw_on_canvas = await drawIndicators(draw_on_canvas, config_json['indicator_options']) # contains explicit canvas location xy
+
+    matrix.SetImage(matrix_canvas, setimage_xy_offsets)
 
 
 """
@@ -79,42 +190,55 @@ async def drawFullImage(image_name, indicator1_colour="white", indicator2_colour
     This is where we define the business logic (cases).
 """
 async def paint_matrix():
-    global config_json, config_reset_json, interrupted
+    global input_config_json, config_reset_json, interrupted
     redis = aioredis.Redis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
 
     while running:
         try:
             async with async_timeout.timeout(5):
-                last_function = config_json['function']
+                last_function = input_config_json['function'] # i think this blows up on first run...
                 # why this text jankiness?  because of redis.pubsub(message=json) -> redis.kv(data=json) -> here
                 # i'm sure there are problems here - and chief might be 'y u have pubsub at all?!'
                 value = (await get_function_json()).strip('\"')
                 fixed_value = value.replace('\'', '"')
-                config_json = json.loads(fixed_value)
+                input_config_json = json.loads(fixed_value)
                 current_time = time.time()
-                message_time = config_json['time']
+                message_time = input_config_json['time']
                 time_delta = current_time - message_time
+                matrix_config_json = {} # reset on each run
+                matrix_config = {} # reset on each run
+                function = 'main'
+
                 async def resetConfig():
                     print(f"Resetting config to: {config_reset_json}")
+                    # todo: this really just needs to be 'back to what we had on before zoom interrupted us'...
                     async with redis.client() as conn:
                         await conn.set("json", str(config_reset_json))
-                async def getLastNetworkIndicatorColour():
+                async def getLastNetworkIndicatorColour(type): # persist network indicator colours across changes
                     async with redis.client() as conn:
-                        network_indicator_colour = await conn.get("network_indicator_colour")
+                        key = f"{type}_indicator_colour"
+                        network_indicator_colour = await conn.get(key)
                     return network_indicator_colour
-                if 'network_indicator_colour' in config_json:
+
+                if 'network_indicator_colours' in input_config_json:
                     async with redis.client() as conn:
-                        await conn.set("network_indicator_colour",config_json['network_indicator_colour'])
-                    network_indicator_colour = config_json['network_indicator_colour']
-                else:
-                    network_indicator_colour = await getLastNetworkIndicatorColour()
+                        await conn.set("local_indicator_colour",input_config_json['network_indicator_colours']['local'])
+                        await conn.set("isp_indicator_colour",input_config_json['network_indicator_colours']['local'])
+                        await conn.set("dns_indicator_colour",input_config_json['network_indicator_colours']['local'])
+                    local_indicator_colour  = input_config_json['network_indicator_colours']['local']
+                    isp_indicator_colour    = input_config_json['network_indicator_colours']['local']
+                    dns_indicator_colour    = input_config_json['network_indicator_colours']['local']
+                else: # if we are not actively changing it, pull from Redis
+                    local_indicator_colour  = await getLastNetworkIndicatorColour('local')
+                    isp_indicator_colour    = await getLastNetworkIndicatorColour('local')
+                    dns_indicator_colour    = await getLastNetworkIndicatorColour('local')
+                # todo: inject this right into the if?
+                matrix_config['indicators'] = {}
+                matrix_config['indicators']['indicator1_colour'] = local_indicator_colour
+                matrix_config['indicators']['indicator2_colour'] = isp_indicator_colour
+                matrix_config['indicators']['indicator3_colour'] = dns_indicator_colour
 
-                # global variables, i.e. indicators are globally important
-                indicator1_colour   = "white"
-                indicator2_colour   = "white"
-                indicator3_colour   = network_indicator_colour
-
-                if last_function != config_json['function']:
+                if last_function != input_config_json['function']:
                     # state has changed, let's clear the matrix to remove any ghosting; this helped!
                     # worth calling out that we are only looking at 'function' here...
                     print("State has changed, clearing matrix!")
@@ -127,17 +251,24 @@ async def paint_matrix():
 
                 # config logic tree
                 # here, idle == network, is the next fix
-                if config_json['function'] == "network":
-                    text_colour         = "white"
+                #if input_config_json['function'] == "network":
+                #    text_colour         = "white"
 
-                    await drawIdle(text_colour, indicator1_colour, indicator2_colour, indicator3_colour)
+                    #await drawIdle(text_colour, indicator1_colour, indicator2_colour, indicator3_colour)
 
-                if config_json['function'] == "zoom":
-                    # we got a zoom call, reset the zoom expiry timer
-                    if config_json['state'] == "muted":
-                        await drawFullImage("muted", indicator1_colour, indicator2_colour, indicator3_colour)
-                    if config_json['state'] == "unmuted":
-                        await drawFullImage("unmuted", indicator1_colour, indicator2_colour, indicator3_colour)
+                #if input_config_json['function'] == "zoom":
+                #    # we got a zoom call, reset the zoom expiry timer
+                #    if input_config_json['zoom_state'] == "muted":
+                #        # change to 'populate json'
+                #        #await drawFullImage("muted", indicator1_colour, indicator2_colour, indicator3_colour)
+                #    if input_config_json['zoom_state'] == "unmuted":
+                #        #change to 'populate json'
+                #        #await drawFullImage("unmuted", indicator1_colour, indicator2_colour, indicator3_colour)
+                matrix_config['function'] = input_config_json['function']
+                # finally, after having set all the variables into our matrix_config_json
+                matrix_config_json = json.dumps(matrix_config) # do we need to do the whole json encode/decode dance now?
+                # we can create the canvas
+                await drawMatrixCanvas(matrix_config_json)
 
                 interrupted = True
         except asyncio.TimeoutError:

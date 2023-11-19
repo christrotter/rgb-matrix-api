@@ -89,7 +89,7 @@ async def get_zoom_state():
 async def get_model(zoom_state: ZoomState):
     configDict = {
         'function': 'zoom',
-        'state': zoom_state,
+        'zoom_state': zoom_state,
         'type': 'override',
         'time': time.time()
     }
@@ -103,9 +103,12 @@ async def get_model(zoom_state: ZoomState):
 """
 @api_router.put("/network/{network_state}", status_code=200)
 async def get_model(network_state: NetworkState):
+    # todo: make the model be a json input
     configDict = {
         'function': 'network',
-        'network_indicator_colour': network_state,
+        'local_indicator_colour': network_state,
+        'isp_indicator_colour': network_state,
+        'dns_indicator_colour': network_state,
         'type': 'override',
         'time': time.time()
     }
