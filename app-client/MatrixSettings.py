@@ -50,10 +50,6 @@ options.limit_refresh_rate_hz = 100
     - pwm_lsb_nanoseconds @400: red or green was fine; white was visibly flickering; playing with this value, only 400 was even close to acceptable, and white...was not
     - pwm_bits: did nothing useful
     - limiting refresh WITHOUT the 4/18 gpio connection fix did nothing!
-
 """
 
-conf = {
-	# check arguments
-	"font": "10x20.pil"
-}
+

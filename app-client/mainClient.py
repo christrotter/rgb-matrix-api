@@ -15,11 +15,7 @@ import MatrixSettings
 config = MatrixSettings.Config() # redis config
 matrix = RGBMatrix(options=MatrixSettings.options)
 large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/9x15B.pil")
-small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
-big_font = ImageFont.load_default(size=31)
-
-#buffer = matrix.CreateFrameCanvas() # note for later...cuz i suspect we'll have to move to images vs. 'fill' or 'text'
-
+big_font = ImageFont.load_default(size=31) # where the clock/time font size is set
 STOPWORD = "STOP" # not sure this is ever really functionally used...is it some kinda redis thing?
 # not sure how to declare this any less jankily
 running = True
@@ -44,7 +40,7 @@ async def drawTime():
     date_x_offset = 1
     date_y_offset = 15
 
-    time_x_offset = 16 
+    time_x_offset = 17 
     time_y_offset = -4
 
     time_str = time.strftime("%H:%M").lower()
