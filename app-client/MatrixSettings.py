@@ -15,7 +15,7 @@ options = RGBMatrixOptions()
 options.rows = 32
 options.cols = 32
 options.chain_length = 3
-options.brightness = 15
+options.brightness = 25
 options.parallel = 1
 options.hardware_mapping = 'adafruit-hat-pwm'  # adafruit-hat-pwm is for the 4/18 gpio connection fix
 options.limit_refresh_rate_hz = 100
@@ -55,5 +55,5 @@ options.limit_refresh_rate_hz = 100
 
 conf = {
 	# check arguments
-	"font": "9x15B.pil"
+	"font": "10x20.pil"
 }

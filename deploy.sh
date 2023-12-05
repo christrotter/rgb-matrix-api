@@ -1,5 +1,5 @@
 #!/bin/bash
-SERVER="192.168.86.23"
+SERVER="192.168.86.185"
 
 rsync -az --force --delete --progress \
     --exclude-from=.gitignore \
