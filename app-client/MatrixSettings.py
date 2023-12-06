@@ -15,7 +15,7 @@ options = RGBMatrixOptions()
 options.rows = 32
 options.cols = 32
 options.chain_length = 3
-options.brightness = 15
+options.brightness = 25
 options.parallel = 1
 options.hardware_mapping = 'adafruit-hat-pwm'  # adafruit-hat-pwm is for the 4/18 gpio connection fix
 options.limit_refresh_rate_hz = 100
@@ -50,10 +50,6 @@ options.limit_refresh_rate_hz = 100
     - pwm_lsb_nanoseconds @400: red or green was fine; white was visibly flickering; playing with this value, only 400 was even close to acceptable, and white...was not
     - pwm_bits: did nothing useful
     - limiting refresh WITHOUT the 4/18 gpio connection fix did nothing!
-
 """
 
-conf = {
-	# check arguments
-	"font": "9x15B.pil"
-}
+

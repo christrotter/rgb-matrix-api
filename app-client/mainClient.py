@@ -14,33 +14,42 @@ from PIL import ImageFont
 import MatrixSettings
 config = MatrixSettings.Config() # redis config
 matrix = RGBMatrix(options=MatrixSettings.options)
-large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/10x20.pil")
-small_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/8x13B.pil")
-#buffer = matrix.CreateFrameCanvas() # note for later...cuz i suspect we'll have to move to images vs. 'fill' or 'text'
-
+large_font = ImageFont.load(os.path.dirname(os.path.realpath(__file__)) + "/fonts/9x15B.pil")
+big_font = ImageFont.load_default(size=31) # where the clock/time font size is set
 STOPWORD = "STOP" # not sure this is ever really functionally used...is it some kinda redis thing?
 # not sure how to declare this any less jankily
 running = True
 zoom_state = ''
 white = 100,100,100
+board_x = 96
+board_y = 32
 
 loop = asyncio.get_event_loop() # sets our infinite loop; not a great choice according to docs...
 
 async def drawTime():
     colour = white
-    time_font = small_font
-    time_image = Image.new("RGB", (96, 32), 0)
+    time_image = Image.new("RGB", (board_x, board_y), 0)
     draw = ImageDraw.Draw(time_image)
-    date_str = time.strftime("%d %b")
-    date_xoffset, date_height = time_font.getsize(date_str)
-    date_xoffset = 2 #int((96 - date_xoffset) /2)
-    time_str = time.strftime("%I:%M%p").lower()
-    time_xoffset, time_height = time_font.getsize(time_str)
-    time_xoffset = 35 #int((96 - time_xoffset) /2)
-    upper_offset = int((32 - (date_height + time_height)) / 2)
-    draw.text((date_xoffset, upper_offset), date_str, colour, font=time_font)
-    draw.text((time_xoffset, date_height + upper_offset), time_str, colour, font=time_font)
-    matrix.SetImage(time_image, 1, 0)
+    date_month = (time.strftime("%b")).upper()
+    date_month_short = date_month[0:2]
+    date_str = time.strftime("%d")
+
+    # offsets; xy coordinate locations of item drawing - if it was a box, the top-left corner
+    month_short_x_offset = 1
+    month_short_y_offset = 3
+    date_x_offset = 1
+    date_y_offset = 15
+
+    time_x_offset = 18 
+    time_y_offset = -4
+
+    time_str = time.strftime("%H:%M").lower()
+
+    draw.text((month_short_x_offset, month_short_y_offset), date_month_short, colour, font=large_font)
+    draw.text((date_x_offset, date_y_offset), date_str, colour, font=large_font)
+    draw.text((time_x_offset, time_y_offset), time_str, colour, font=big_font)
+
+    matrix.SetImage(time_image, 0, 0)
 
 """
     paint_matrix: This async function acts on other state pulled from redis keys and modifies the rgb matrix accordingly.
