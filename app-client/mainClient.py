@@ -21,6 +21,7 @@ STOPWORD = "STOP" # not sure this is ever really functionally used...is it some 
 running = True
 zoom_state = ''
 white = 100,100,100
+white = 100,100,100
 board_x = 96
 board_y = 32
 
@@ -40,7 +41,7 @@ async def drawTime():
     date_x_offset = 1
     date_y_offset = 15
 
-    time_x_offset = 17 
+    time_x_offset = 18 
     time_y_offset = -4
 
     time_str = time.strftime("%H:%M").lower()
