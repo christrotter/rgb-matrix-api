@@ -21,7 +21,6 @@ STOPWORD = "STOP" # not sure this is ever really functionally used...is it some 
 running = True
 zoom_state = ''
 white = 100,100,100
-white = 100,100,100
 board_x = 96
 board_y = 32
 
