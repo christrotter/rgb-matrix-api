@@ -6,9 +6,11 @@ services:
     restart: always
     ports:
       - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
-    volumes:
-      - cache:/data
+    command: redis-server --save 20 1 --loglevel debug --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
   api:
     container_name: api
     image: rgb-matrix-api:latest
@@ -21,6 +23,26 @@ services:
       - redis
     volumes:
       - /etc/localtime:/etc/localtime
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
+  config_bundler:
+    container_name: config_bundler
+    image: rgb-matrix-config_bundler:latest
+    restart: always
+    environment:
+      - REDIS_HOST=redis
+    ports:
+     - '8000:8000'
+    depends_on:
+      - redis
+    volumes:
+      - /etc/localtime:/etc/localtime
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
   client:
     container_name: client
     image: rgb-matrix-client:latest
@@ -32,9 +54,11 @@ services:
       - /etc/localtime:/etc/localtime
     depends_on:
       - redis
-volumes:
-  cache:
-    driver: local
+      - api
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
 
 networks:
   services:

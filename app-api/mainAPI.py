@@ -3,14 +3,23 @@ from fastapi import FastAPI, APIRouter
 from enum import Enum
 from pydantic import BaseModel
 from pydantic import BaseSettings
+import json
+import time
 import asyncio
 import async_timeout
 import aioredis
 
+"""
+    ############# CONFIG SECTION #############
+"""
 REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+STOPWORD = "STOP"
 
+"""
+    ############# CLASSES SECTION #############
+"""
 class Config(BaseSettings):
-    redis_url: str = "redis://{}:{}/1".format(REDIS_HOST, 6379)
+    redis_url: str = "redis://{}:{}/0".format(REDIS_HOST, 6379)
     redis_pass: str = 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81'
 
 class ZoomState(str, Enum):
@@ -18,44 +27,58 @@ class ZoomState(str, Enum):
     unmuted     = "unmuted"
     inactive    = "inactive"
 
+class NetworkState(str, Enum):
+    green       = "green"
+    yellow      = "yellow"
+    red         = "red"
+
+"""
+    ############# WHATEVER THESE ARE SECTION #############
+"""
 config = Config()
 app = FastAPI()
 api_router = APIRouter()
-STOPWORD = "STOP"
 
-# rgb toggle function
-# this is where we act on the rgb matrix
-# pubsub might be the wrong tech here...but should work for now
-# actually, we want the other end to react accordingly...so maybe it is?
-async def toggle_rgb(zoom_state):
+"""
+    ############# FUNCTIONS SECTION #############
+"""
+"""
+    send_client_json: how we send the json blob over to the client, c/o Redis pubsub
+
+    function: e.g. zoom
+    state: e.g. idle, override, momentary
+    type: this is useless...
+    time: timestamp used for expiry calculations
+"""
+async def send_client_json(function, jsonDict):
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
-    # if state mute, publish muted message
-    if (zoom_state == "muted"):
-        await redis.publish("ch-zoom","muted")
-    # if state unmute, rgb green
-    if (zoom_state == "unmuted"):
-        await redis.publish("ch-zoom","unmuted")
-    # if state inactive, rgb off
-    if (zoom_state == "inactive"):
-        await redis.publish("ch-zoom","inactive")
-    #TODO there is no real way of clearing out old messages...which is kinda why i suspect pubsub is not what we want...
+    channel = "ch-" + function
+    jsonBlob = json.dumps(jsonDict)
+    print(jsonBlob)
+    await redis.publish(channel,jsonBlob)
 
+"""
+    the swiftbar plugin needs this; queries state and acts
+"""
 async def fetch_zoom_state():
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
     value = await redis.get("zoom_state")
     return value
 
+"""
+    ############# API SECTION #############
+"""
+
 @api_router.on_event('startup')
 async def startup_event():
     redis = aioredis.from_url(config.redis_url, password=config.redis_pass, decode_responses=True)
-    await redis.set("zoom_state", "inactive")
+    await redis.set("function", "idle")
     value = await redis.get("zoom_state")
     print("startup: redis value is:",value)
-    await redis.publish("ch-zoom", "Hello from FastAPI!")
 
 @api_router.get("/", status_code=200)
 async def root():
-    return {"message": "Welcome to the rgb-matrix-api."}
+    return {"message": "Welcome to the rgb-matrix-api. /docs has more info."}
 
 @api_router.get("/zoom/state", status_code=200)
 async def get_zoom_state():
@@ -64,6 +87,34 @@ async def get_zoom_state():
 
 @api_router.put("/zoom/{zoom_state}", status_code=200)
 async def get_model(zoom_state: ZoomState):
-    await toggle_rgb(zoom_state)
+    configDict = {
+        'function': 'zoom',
+        'zoom_state': zoom_state,
+        'type': 'override',
+        'time': time.time()
+    }
+    await send_client_json("zoom",configDict)
 
+"""
+    so a big problem here is that a network call is associated with an entire board state...
+    we want this to only touch the indicator
+    this requires a shift in how we process the board...
+    put /network/state should be its own thing; so we need to start looking at channel sources on the client end
+"""
+@api_router.put("/network/{network_state}", status_code=200)
+async def get_model(network_state: NetworkState):
+    # todo: make the model be a json input
+    configDict = {
+        'function': 'network',
+        'local_indicator_colour': network_state,
+        'isp_indicator_colour': network_state,
+        'dns_indicator_colour': network_state,
+        'type': 'override',
+        'time': time.time()
+    }
+    await send_client_json("network",configDict)
+
+"""
+    ############# APP STARTUP SECTION #############
+"""
 app.include_router(api_router)
